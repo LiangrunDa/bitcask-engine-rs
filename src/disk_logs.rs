@@ -11,14 +11,19 @@ use crate::memory_index::{MemIndex, MemIndexEntry};
 
 pub(crate) struct DiskLog {
     files: Vec<DiskLogFile>,
+    data_dir: PathBuf,
+    current_file_size: u64,
 }
 
 impl DiskLog {
 
     /// create a new log file with file id 0.
-    fn new<T: Into<PathBuf>>(data_dir: T) -> Result<Self, BitCaskError> {
+    fn new<T: Into<PathBuf> + Clone>(data_dir: T) -> Result<Self, BitCaskError> {
+        let data_dir_path_buf: PathBuf = data_dir.clone().into();
         Ok(Self {
             files: vec![DiskLogFile::new(data_dir, 0)?],
+            data_dir: data_dir_path_buf,
+            current_file_size: 0,
         })
     }
 
@@ -53,12 +58,14 @@ impl DiskLog {
             return Self::new(data_dir);
         }
 
-        let files = files
+        let files: Vec<DiskLogFile> = files
             .into_iter()
             .map(|(_, disk_log_file)| disk_log_file)
             .collect();
 
-        Ok(Self { files })
+        let current_file_size = files.last().unwrap().file.metadata()?.len();
+
+        Ok(Self { files, data_dir, current_file_size })
     }
 
     fn current_file(&mut self) -> (&mut DiskLogFile, FileId) {
@@ -101,10 +108,28 @@ impl DiskLog {
         let value_offset = file.seek(SeekFrom::End(0))? + entry.value_byte_offset();
         entry.serialize(file)?;
         file.flush()?; // ensure persistency
+        self.current_file_size += entry.total_byte_size();
+        // check if the current file exceeds the max file size, if so, create a new file
+        if self.current_file_size > DiskLogFile::MAX_FILE_SIZE {
+            self.check_file_size()?;
+        }
         Ok(MemIndexEntry {
             file_id,
             value_offset,
             value_size: entry.value_byte_size(),
         })
+    }
+
+    fn check_file_size(&mut self) -> Result<(), BitCaskError> {
+        let (disk_log_file, file_id) = self.current_file();
+        let file = &mut disk_log_file.file;
+        let file_size = file.metadata()?.len();
+        if file_size > DiskLogFile::MAX_FILE_SIZE {
+            trace!("Disk log file {} exceeds max file size, creating a new file", file_id);
+            let new_file_id = file_id + 1;
+            let new_file = DiskLogFile::new(&self.data_dir, new_file_id)?;
+            self.files.push(new_file);
+        }
+        Ok(())
     }
 }

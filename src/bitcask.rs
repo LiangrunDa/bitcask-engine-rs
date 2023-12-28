@@ -28,6 +28,11 @@ impl BitCask {
             storage: Arc::new(RwLock::new(storage)),
         })
     }
+
+    pub fn compact_from_disk<T: Into<PathBuf>>(old_data_dir: T, new_data_dir: T) -> Result<Self, BitCaskError> {
+        todo!()
+    }
+
 }
 
 impl KVStorage for BitCask {
@@ -49,4 +54,3 @@ impl KVStorage for BitCask {
 }
 
 // TODO: implement auto new file creation
-// TODO: implement file compaction
