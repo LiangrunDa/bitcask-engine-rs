@@ -1,7 +1,7 @@
+use crate::error::BitCaskError;
+use crate::storage::{start_compaction, LogIndexStorage};
 use std::path::PathBuf;
 use std::sync::{Arc, RwLock};
-use crate::error::BitCaskError;
-use crate::storage::LogIndexStorage;
 
 pub(crate) type FileId = usize;
 pub(crate) type ByteSize = u64;
@@ -9,7 +9,7 @@ pub(crate) type ByteOffset = u64;
 pub type Key = Vec<u8>;
 pub type Value = Vec<u8>;
 
-pub trait KVStorage : Clone + Send + 'static {
+pub trait KVStorage: Clone + Send + 'static {
     fn get(&self, key: &Key) -> Option<Value>;
     fn put(&mut self, key: &Key, value: &Value) -> Result<(), BitCaskError>;
     fn delete(&mut self, key: &Key) -> Result<(), BitCaskError>;
@@ -29,10 +29,17 @@ impl BitCask {
         })
     }
 
-    pub fn compact_from_disk<T: Into<PathBuf>>(old_data_dir: T, new_data_dir: T) -> Result<Self, BitCaskError> {
-        todo!()
+    /// WARNING: this method is a blocking call, it will block the current thread until the compaction is finished.
+    /// If you're using this method in an async context, you should spawn a blocking worker thread to call this method.
+    pub fn compact_to_new_dir<T: Into<PathBuf>>(&self, data_dir: T) -> Result<(), BitCaskError> {
+        let mut storage = self.storage.write().unwrap();
+        let data_dir: PathBuf = data_dir.into();
+        let immutable_files = storage.prepare_compaction()?;
+        drop(storage);
+        start_compaction(immutable_files.clone(), data_dir.clone())?;
+        let mut storage = self.storage.write().unwrap();
+        storage.finish_compaction(immutable_files, data_dir)
     }
-
 }
 
 impl KVStorage for BitCask {
@@ -52,5 +59,3 @@ impl KVStorage for BitCask {
         self.storage.read().unwrap().size()
     }
 }
-
-// TODO: implement auto new file creation

@@ -1,10 +1,10 @@
-use std::io::{BufReader, Read, Seek, SeekFrom};
+use crate::bitcask::FileId;
+use crate::error::BitCaskError;
+use crate::log_entry::{Deserialize, DiskLogEntry, Serialize};
+use crate::memory_index::{MemIndex, MemIndexEntry};
+use std::io::{BufReader, Read, Seek, SeekFrom, Write};
 use std::path::PathBuf;
 use tracing::trace;
-use crate::bitcask::{FileId};
-use crate::error::BitCaskError;
-use crate::log_entry::{Deserialize, DiskLogEntry};
-use crate::memory_index::{MemIndex, MemIndexEntry};
 
 pub(crate) struct DiskLogFile {
     pub(crate) file_id: FileId,
@@ -12,12 +12,14 @@ pub(crate) struct DiskLogFile {
     pub(crate) file: std::fs::File,
 }
 
-
 impl DiskLogFile {
     pub(crate) const EXT: &'static str = "bitcask";
     pub(crate) const MAX_FILE_SIZE: u64 = 1024 * 1024 * 1024; // 1GB
-    // create a new file for writing
-    pub(crate) fn new<T: Into<PathBuf>>(data_dir: T, file_id: FileId) -> Result<Self, BitCaskError> {
+                                                              // create a new file for writing
+    pub(crate) fn new<T: Into<PathBuf>>(
+        data_dir: T,
+        file_id: FileId,
+    ) -> Result<Self, BitCaskError> {
         let mut path: PathBuf = data_dir.into();
         path.push(file_id.to_string());
         path.set_extension(Self::EXT);
@@ -34,7 +36,11 @@ impl DiskLogFile {
     }
 
     // open an existing file for reading
-    pub(crate) fn open(file_id: FileId, path: PathBuf, mem_index: &mut MemIndex) -> Result<Self, BitCaskError> {
+    pub(crate) fn open(
+        file_id: FileId,
+        path: PathBuf,
+        mem_index: &mut MemIndex,
+    ) -> Result<Self, BitCaskError> {
         // Here all the files are opened in append mode, but we don't actually append anything except the last one
         trace!("opening disk log file: {:?}", path);
         let file = std::fs::OpenOptions::new()
@@ -75,5 +81,13 @@ impl DiskLogFile {
             cursor += entry_size;
         }
         Ok(())
+    }
+
+    pub(crate) fn append_new_entry(&mut self, entry: DiskLogEntry) -> Result<u64, BitCaskError> {
+        let file = &mut self.file;
+        let value_offset = file.seek(SeekFrom::End(0))? + entry.value_byte_offset();
+        entry.serialize(file)?;
+        file.flush()?; // ensure persistency
+        Ok(value_offset)
     }
 }

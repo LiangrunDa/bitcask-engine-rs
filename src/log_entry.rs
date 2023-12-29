@@ -1,15 +1,15 @@
-use std::io::{Read, Write};
-use crc::{Crc, CRC_32_CKSUM};
+use crate::bitcask::{ByteOffset, ByteSize, Key, Value};
 use crate::error::BitCaskError;
-use crate::bitcask::{ByteSize, ByteOffset, Key, Value};
+use crc::{Crc, CRC_32_CKSUM};
+use std::io::{Read, Write};
 
 const CRC32: Crc<u32> = Crc::<u32>::new(&CRC_32_CKSUM);
 
-
 /// Any object that is readable can be deserialized
-pub(crate) trait Deserialize
-{
-    fn deserialize<T: Read>(buf: &mut T) -> Result<Self, BitCaskError> where Self: Sized;
+pub(crate) trait Deserialize {
+    fn deserialize<T: Read>(buf: &mut T) -> Result<Self, BitCaskError>
+    where
+        Self: Sized;
 }
 
 /// Any object that is writable can be serialized to
@@ -36,7 +36,11 @@ impl DiskLogEntry {
     }
     pub(crate) fn new_tombstone(key: Key) -> Self {
         let check_sum = 0;
-        Self { check_sum, key, value: None }
+        Self {
+            check_sum,
+            key,
+            value: None,
+        }
     }
     pub(crate) fn is_tombstone(&self) -> bool {
         self.value.is_none()
@@ -50,13 +54,28 @@ impl DiskLogEntry {
         }
     }
 
-    const fn check_sum_byte_size() -> ByteSize { 4 }
+    const fn check_sum_byte_size() -> ByteSize {
+        4
+    }
 
-    fn key_byte_size(&self) -> ByteSize { self.key.len() as u64 }
-    pub(crate) fn value_byte_size(&self) -> ByteSize { self.value.as_ref().map(|v| v.len() as u64).unwrap_or(0) }
-    const fn size_byte_len() -> ByteSize { ByteSize::BITS as u64 / 8 }
-    pub(crate) fn value_byte_offset(&self) -> ByteOffset { Self::check_sum_byte_size() + Self::size_byte_len() * 2 + self.key_byte_size() }
-    pub(crate) fn total_byte_size(&self) -> ByteSize { Self::check_sum_byte_size() + Self::size_byte_len() * 2 + self.key_byte_size() + self.value_byte_size() }
+    fn key_byte_size(&self) -> ByteSize {
+        self.key.len() as u64
+    }
+    pub(crate) fn value_byte_size(&self) -> ByteSize {
+        self.value.as_ref().map(|v| v.len() as u64).unwrap_or(0)
+    }
+    const fn size_byte_len() -> ByteSize {
+        ByteSize::BITS as u64 / 8
+    }
+    pub(crate) fn value_byte_offset(&self) -> ByteOffset {
+        Self::check_sum_byte_size() + Self::size_byte_len() * 2 + self.key_byte_size()
+    }
+    pub(crate) fn total_byte_size(&self) -> ByteSize {
+        Self::check_sum_byte_size()
+            + Self::size_byte_len() * 2
+            + self.key_byte_size()
+            + self.value_byte_size()
+    }
 }
 
 /// Disk layout
@@ -67,7 +86,11 @@ impl DiskLogEntry {
 ///  - Value (if tombstone, then value is None, and value size is 0)
 impl Serialize for DiskLogEntry {
     fn serialize<T: Write>(&self, buf: &mut T) -> Result<(), BitCaskError> {
-        let DiskLogEntry { check_sum, key, value } = self;
+        let DiskLogEntry {
+            check_sum,
+            key,
+            value,
+        } = self;
         // checksum
         buf.write_all(&check_sum.to_be_bytes())?;
         // key size and value size
@@ -83,7 +106,6 @@ impl Serialize for DiskLogEntry {
         Ok(())
     }
 }
-
 
 impl Deserialize for DiskLogEntry {
     fn deserialize<T: Read>(buf: &mut T) -> Result<Self, BitCaskError> {
@@ -110,7 +132,11 @@ impl Deserialize for DiskLogEntry {
             None
         };
         // construct DiskLogEntry
-        let entry = Self { check_sum, key, value };
+        let entry = Self {
+            check_sum,
+            key,
+            value,
+        };
         // validate checksum
         if entry.is_valid() {
             Ok(entry)
