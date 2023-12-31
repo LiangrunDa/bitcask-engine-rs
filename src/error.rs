@@ -10,4 +10,6 @@ pub enum BitCaskError {
     UnexpectedError(#[from] anyhow::Error),
     #[error("Key already exists")]
     KeyExists,
+    #[error("Key does not exist")]
+    KeyNotFound,
 }

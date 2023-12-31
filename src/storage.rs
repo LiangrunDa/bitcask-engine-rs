@@ -1,4 +1,4 @@
-use crate::bitcask::{Key, Value};
+use crate::bitcask::{Key, PutOption, Value};
 use crate::disk_logs::DiskLog;
 use crate::error::BitCaskError;
 use crate::log_entry::DiskLogEntry;
@@ -72,7 +72,22 @@ impl LogIndexStorage {
         }
     }
 
-    pub(crate) fn put(&mut self, key: &Key, value: &Value) -> Result<(), BitCaskError> {
+    pub(crate) fn put(&mut self, key: &Key, value: &Value, option: Option<PutOption>) -> Result<(), BitCaskError> {
+        match option {
+            Some(option) => {
+                if option.nx {
+                    return self.put_nx(key, value);
+                }
+                if option.xx {
+                    return self.put_xx(key, value);
+                }
+                self.put_without_option(key, value)
+            }
+            None => self.put_without_option(key, value),
+        }
+    }
+
+    pub(crate) fn put_without_option(&mut self, key: &Key, value: &Value) -> Result<(), BitCaskError> {
         let index_entry = self.disk_log.put(key, value)?;
         self.mem_index.put(key.clone(), index_entry);
         Ok(())
@@ -84,6 +99,20 @@ impl LogIndexStorage {
             if !index_entry.is_tombstone() {
                 return Err(BitCaskError::KeyExists);
             }
+        }
+        let index_entry = self.disk_log.put(key, value)?;
+        self.mem_index.put(key.clone(), index_entry);
+        Ok(())
+    }
+
+    pub(crate) fn put_xx(&mut self, key: &Key, value: &Value) -> Result<(), BitCaskError> {
+        let index_entry = self.mem_index.get(key);
+        if let Some(index_entry) = index_entry {
+            if index_entry.is_tombstone() {
+                return Err(BitCaskError::KeyNotFound);
+            }
+        } else {
+            return Err(BitCaskError::KeyNotFound);
         }
         let index_entry = self.disk_log.put(key, value)?;
         self.mem_index.put(key.clone(), index_entry);

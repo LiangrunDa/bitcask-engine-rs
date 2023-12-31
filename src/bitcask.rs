@@ -11,10 +11,38 @@ pub type Value = Vec<u8>;
 
 pub trait KVStorage: Clone + Send + 'static {
     fn get(&self, key: &Key) -> Option<Value>;
-    fn put(&mut self, key: &Key, value: &Value) -> Result<(), BitCaskError>;
+    fn put_with_option(&mut self, key: &Key, value: &Value, option: Option<PutOption>) -> Result<(), BitCaskError>;
+    fn put(&mut self, key: &Key, value: &Value) -> Result<(), BitCaskError> {
+        self.put_with_option(key, value, PutOption::none())
+    }
     fn delete(&mut self, key: &Key) -> Result<(), BitCaskError>;
-    fn put_nx(&mut self, key: &Key, value: &Value) -> Result<(), BitCaskError>;
     fn size(&self) -> usize;
+}
+
+pub struct PutOption {
+    pub nx: bool,
+    pub xx: bool,
+}
+
+impl PutOption {
+
+    pub fn none() -> Option<Self> {
+        None
+    }
+
+    pub fn nx() -> Option<Self> {
+        Some(Self {
+            nx: true,
+            xx: false,
+        })
+    }
+
+    pub fn xx() -> Option<Self> {
+        Some(Self {
+            nx: false,
+            xx: true,
+        })
+    }
 }
 
 #[derive(Clone)]
@@ -48,12 +76,8 @@ impl KVStorage for BitCask {
         self.storage.read().unwrap().get(key)
     }
 
-    fn put(&mut self, key: &Key, value: &Value) -> Result<(), BitCaskError> {
-        self.storage.write().unwrap().put(key, value)
-    }
-
-    fn put_nx(&mut self, key: &Key, value: &Value) -> Result<(), BitCaskError> {
-        self.storage.write().unwrap().put_nx(key, value)
+    fn put_with_option(&mut self, key: &Key, value: &Value, option: Option<PutOption>) -> Result<(), BitCaskError> {
+        self.storage.write().unwrap().put(key, value, option)
     }
 
     fn delete(&mut self, key: &Key) -> Result<(), BitCaskError> {
