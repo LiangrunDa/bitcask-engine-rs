@@ -8,6 +8,15 @@ Apart from the original paper, this implementation also supports the following f
 2. XX (exist) for `put` operation
 
 
+[![Crates.io][crates-badge]][crates-url]
+[![MIT licensed][mit-badge]][mit-url]
+
+[crates-badge]: https://img.shields.io/crates/v/bitcask-engine-rs
+[crates-url]: https://crates.io/crates/bitcask-engine-rs
+[mit-badge]: https://img.shields.io/badge/license-MIT-blue.svg
+[mit-url]: https://github.com/LiangrunDa/bitcask-engine-rs/blob/main/LICENSE
+
+
 ## Usage
 
 Add this to your `Cargo.toml`:
