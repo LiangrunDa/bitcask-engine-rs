@@ -8,6 +8,6 @@ pub enum BitCaskError {
     CorruptedData(String),
     #[error(transparent)]
     UnexpectedError(#[from] anyhow::Error),
-    #[error("Value not found")]
-    ValueNotFound,
+    #[error("Key already exists")]
+    KeyExists,
 }

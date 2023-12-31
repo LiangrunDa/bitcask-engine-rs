@@ -34,4 +34,13 @@ mod tests {
         assert_eq!(bitcask_new.get(&vec![1, 2, 3]), Some(vec![5, 6, 7]));
         assert_eq!(bitcask_new.get(&vec![1, 2]), Some(vec![3, 4]));
     }
+    
+    #[test]
+    fn test_put_nx() {
+        let mut bitcask = bitcask::BitCask::new("./data/bitcask").unwrap();
+        bitcask.put_nx(&vec![1, 2, 3], &vec![4, 5, 6]).unwrap();
+        let res = bitcask.get(&vec![1, 2, 3]);
+        assert_eq!(res, Some(vec![4, 5, 6]));
+        bitcask.put_nx(&vec![1, 2, 3], &vec![4, 5, 6]).unwrap_err();
+    }
 }

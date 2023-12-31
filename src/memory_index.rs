@@ -54,3 +54,9 @@ impl Iterator for MemIndexIterator {
         self.inner.next()
     }
 }
+
+impl MemIndexEntry {
+    pub(crate) fn is_tombstone(&self) -> bool {
+        self.value_size == 0
+    }
+}

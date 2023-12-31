@@ -13,6 +13,7 @@ pub trait KVStorage: Clone + Send + 'static {
     fn get(&self, key: &Key) -> Option<Value>;
     fn put(&mut self, key: &Key, value: &Value) -> Result<(), BitCaskError>;
     fn delete(&mut self, key: &Key) -> Result<(), BitCaskError>;
+    fn put_nx(&mut self, key: &Key, value: &Value) -> Result<(), BitCaskError>;
     fn size(&self) -> usize;
 }
 
@@ -49,6 +50,10 @@ impl KVStorage for BitCask {
 
     fn put(&mut self, key: &Key, value: &Value) -> Result<(), BitCaskError> {
         self.storage.write().unwrap().put(key, value)
+    }
+
+    fn put_nx(&mut self, key: &Key, value: &Value) -> Result<(), BitCaskError> {
+        self.storage.write().unwrap().put_nx(key, value)
     }
 
     fn delete(&mut self, key: &Key) -> Result<(), BitCaskError> {

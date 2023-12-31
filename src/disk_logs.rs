@@ -92,9 +92,6 @@ impl DiskLog {
             value_size,
             file_id,
         } = mem_index_entry;
-        if *value_size == 0 {
-            return Err(BitCaskError::ValueNotFound);
-        }
         let disk_log_file = self.get_file(*file_id);
         let mut buffered_reader =
             BufReader::with_capacity(*value_size as usize, &disk_log_file.file);

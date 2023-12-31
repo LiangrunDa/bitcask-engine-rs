@@ -56,16 +56,15 @@ impl LogIndexStorage {
         let mem_index_entry = self.mem_index.get(key);
         match mem_index_entry {
             Some(mem_index_entry) => {
+                if mem_index_entry.is_tombstone() {
+                    return None;
+                }
                 let res = self.disk_log.get(&mem_index_entry);
                 match res {
                     Ok(value) => Some(value),
                     Err(e) => {
-                        if let BitCaskError::ValueNotFound = e {
-                            None
-                        } else {
-                            error!("Error while getting value from disk log: {:?}", e);
-                            None
-                        }
+                        error!("Error while getting value from disk log: {:?}", e);
+                        None
                     }
                 }
             }
@@ -74,6 +73,18 @@ impl LogIndexStorage {
     }
 
     pub(crate) fn put(&mut self, key: &Key, value: &Value) -> Result<(), BitCaskError> {
+        let index_entry = self.disk_log.put(key, value)?;
+        self.mem_index.put(key.clone(), index_entry);
+        Ok(())
+    }
+
+    pub(crate) fn put_nx(&mut self, key: &Key, value: &Value) -> Result<(), BitCaskError> {
+        let index_entry = self.mem_index.get(key);
+        if let Some(index_entry) = index_entry {
+            if !index_entry.is_tombstone() {
+                return Err(BitCaskError::KeyExists);
+            }
+        }
         let index_entry = self.disk_log.put(key, value)?;
         self.mem_index.put(key.clone(), index_entry);
         Ok(())
