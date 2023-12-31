@@ -1,11 +1,11 @@
 [package]
-name = "bitcask-rs"
+name = "bitcask-engine-rs"
 version = "0.1.0"
 edition = "2021"
 authors = ["Liangrun Da <me@liangrunda.com>"]
 description = "A Rust implementation of Bitcask"
 readme = "README.md"
-repository = "https://github.com/liangrunda/bitcask-rs"
+repository = "https://github.com/liangrunda/bitcask-engine-rs"
 license = "MIT"
 license-file = "LICENSE"
 keywords = ["bitcask", "database"]

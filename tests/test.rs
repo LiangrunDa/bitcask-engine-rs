@@ -1,5 +1,5 @@
 use rand::Rng;
-use bitcask_rs::bitcask::{BitCask, KVStorage, PutOption};
+use bitcask_engine_rs::bitcask::{BitCask, KVStorage, PutOption};
 
 #[test]
 fn it_works() {

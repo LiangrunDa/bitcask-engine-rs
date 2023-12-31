@@ -1,6 +1,6 @@
-# BitCask-rs
+# BitCask Engine
 
-Rust implementation of [BitCask](https://riak.com/assets/bitcask-intro.pdf), a log-structured storage engine for key/value data.
+A Rust implementation of [BitCask](https://riak.com/assets/bitcask-intro.pdf), a log-structured storage engine for key/value data.
 
 Apart from the original paper, this implementation also supports the following features:
 
@@ -14,13 +14,13 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-bitcask-rs = "0.1.0"
+bitcask-engine-rs = "0.1.0"
 ```
 
 To use it in your project, you can initialize a `Bitcask` instance with a directory path:
 
 ```rust
-use bitcask_rs::Bitcask;
+use bitcask_engine_rs::Bitcask;
 
 fn main() {
     let mut bitcask = Bitcask::new("/tmp/bitcask").unwrap();
@@ -34,11 +34,11 @@ The `Bitcask` instance is thread-safe, so you can share it between threads.
 ```rust
 use tokio::io::AsyncReadExt;
 use tokio::net::TcpListener;
-use bitcask_rs::bitcask::KVStorage;
+use bitcask_engine_rs::bitcask::KVStorage;
 
 #[tokio::main]
 async fn main() {
-    let bitcask = bitcask_rs::bitcask::BitCask::new("./data").unwrap();
+    let bitcask = bitcask_engine_rs::bitcask::BitCask::new("./data").unwrap();
     let listener = TcpListener::bind("127.0.0.1:8080").await.unwrap();
     loop {
         let (mut socket, _) = listener.accept().await.unwrap();
@@ -65,4 +65,4 @@ async fn main() {
 TODO
 
 ## License
-The project is under the [MIT license](https://github.com/LiangrunDa/bitcask-rs/blob/main/LICENSE).
+The project is under the [MIT license](https://github.com/LiangrunDa/bitcask-engine-rs/blob/main/LICENSE).
