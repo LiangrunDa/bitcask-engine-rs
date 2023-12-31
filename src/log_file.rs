@@ -2,7 +2,7 @@ use crate::bitcask::FileId;
 use crate::error::BitCaskError;
 use crate::log_entry::{Deserialize, DiskLogEntry, Serialize};
 use crate::memory_index::{MemIndex, MemIndexEntry};
-use std::io::{BufReader, Read, Seek, SeekFrom, Write};
+use std::io::{BufReader, Seek, SeekFrom, Write};
 use std::path::PathBuf;
 use tracing::trace;
 

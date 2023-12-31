@@ -27,10 +27,6 @@ impl LogIndexStorage {
         })
     }
 
-    pub(crate) fn get_immutable_files(&self) -> Vec<PathBuf> {
-        self.disk_log.get_immutable_files()
-    }
-
     pub(crate) fn prepare_compaction(&mut self) -> Result<Vec<PathBuf>, BitCaskError> {
         // step 0: create a new empty log file
         self.disk_log.create_new_file()?;
@@ -61,14 +57,18 @@ impl LogIndexStorage {
         match mem_index_entry {
             Some(mem_index_entry) => {
                 let res = self.disk_log.get(&mem_index_entry);
-                return if let Err(e) = res {
-                    error!("Error reading from disk log: {}", e);
-                    None
-                } else {
-                    Some(res.unwrap())
-                };
+                match res {
+                    Ok(value) => Some(value),
+                    Err(e) => {
+                        if let BitCaskError::ValueNotFound = e {
+                            None
+                        } else {
+                            error!("Error while getting value from disk log: {:?}", e);
+                            None
+                        }
+                    }
+                }
             }
-            // if it is a tombstone, or the key does not exist, the mem_index will return None
             None => None,
         }
     }
@@ -98,7 +98,7 @@ pub(crate) fn start_compaction(
     std::fs::create_dir_all(&new_log_file_path)?;
     let mut new_log_file = DiskLogFile::new(&new_log_file_path, 0)?;
     let mut mem_index = MemIndex::new();
-    let mut disk_logs = DiskLog::immutable_initialization(immutable_files, &mut mem_index)?;
+    let disk_logs = DiskLog::immutable_initialization(immutable_files, &mut mem_index)?;
     let iter = mem_index.into_iter();
     for (key, mem_index_entry) in iter {
         let value = disk_logs.get(&mem_index_entry)?;

@@ -58,7 +58,7 @@ impl DiskLog {
                 })
             })
             .collect();
-        let mut files = Self::to_disk_log_files(files, mem_index)?;
+        let files = Self::to_disk_log_files(files, mem_index)?;
 
         if (files.len()) == 0 {
             trace!("No disk log files found, starting from scratch");
@@ -92,8 +92,10 @@ impl DiskLog {
             value_size,
             file_id,
         } = mem_index_entry;
+        if *value_size == 0 {
+            return Err(BitCaskError::ValueNotFound);
+        }
         let disk_log_file = self.get_file(*file_id);
-
         let mut buffered_reader =
             BufReader::with_capacity(*value_size as usize, &disk_log_file.file);
         buffered_reader.seek(SeekFrom::Start(*value_offset))?;
